@@ -31,7 +31,7 @@ def generate_smiles():
 
         # Read SMILES from the output file
         with open(output_file, 'r') as f:
-            generated_smiles = [line.strip() for line in f]
+            generated_smiles = [line.strip() for line in f]  # Read each line
 
         # Remove the temporary output file
         os.remove(output_file)
@@ -46,4 +46,5 @@ def generate_smiles():
         return jsonify({'error': str(e)}), 500
 
 if __name__ == '__main__':
-    app.run(debug=True, port=5000)
+    # Bind to 0.0.0.0 to be accessible externally (required by Render)
+    app.run(host='0.0.0.0', port=5000, debug=True)
