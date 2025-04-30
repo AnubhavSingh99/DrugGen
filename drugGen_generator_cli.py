@@ -103,7 +103,6 @@ class SMILESGenerator:
                         generated_smiles_set.add(generated_smiles)
                 except (IndexError, AttributeError) as e:
                     logging.warning(f"Failed to parse SMILES due to error: {str(e)}. Skipping.")
-
                     continue
 
             retries += 1
@@ -145,27 +144,17 @@ class SMILESGenerator:
         logging.info(f"Completed SMILES generation for {len(data)} entries.")  # Log the completion of the process
 
         return pd.DataFrame(data)
-    
 
-if __name__ == "__main__":
-    # Parse command-line arguments
-    parser = argparse.ArgumentParser(description="Generate unique SMILES for protein sequences or UniProt IDs.")
-    parser.add_argument("--sequences", nargs="*", help="Protein sequences (space-separated).")
-    parser.add_argument("--uniprot_ids", nargs="*", help="UniProt IDs (space-separated).")
-    parser.add_argument("--num_generated", type=int, default=10, help="Number of unique SMILES to generate per input.")
-    parser.add_argument("--output_file", type=str, default="generated_SMILES.txt", help="Output file name.")
-    args = parser.parse_args()
-
+def run_generation(sequences=None, uniprot_ids=None, num_generated=10, output_file="generated_SMILES.txt"):
     # Ensure the output file has a .txt extension
-    if not args.output_file.endswith('.txt'):
-        args.output_file += '.txt'
+    if not output_file.endswith('.txt'):
+        output_file += '.txt'
 
-
-    # log file name
-    setup_logging(args.output_file)
+    # Setup logging
+    setup_logging(output_file)
 
     # Check if at least one of sequences or UniProt IDs is provided
-    if not args.sequences and not args.uniprot_ids:
+    if not sequences and not uniprot_ids:
         raise ValueError("You must provide either protein sequences or UniProt IDs.")
 
     # Load model and tokenizer
@@ -177,19 +166,34 @@ if __name__ == "__main__":
     dataset_key = "uniprot_sequence"
     dataset = load_dataset(dataset_name, dataset_key)
     uniprot_to_sequence = {row["UniProt_id"]: row["Sequence"] for row in dataset["uniprot_seq"]}
-    
 
     # Initialize the generator
-    generator = SMILESGenerator(model, tokenizer, uniprot_to_sequence, output_file=args.output_file)
+    generator = SMILESGenerator(model, tokenizer, uniprot_to_sequence, output_file=output_file)
     logging.info("Starting SMILES generation process...")
-    
+
     # Generate SMILES data
     df = generator.generate_smiles_data(
-        list_of_sequences=args.sequences,
-        list_of_uniprot_ids=args.uniprot_ids,
-        num_generated=args.num_generated
+        list_of_sequences=sequences,
+        list_of_uniprot_ids=uniprot_ids,
+        num_generated=num_generated
     )
 
     # Save the output
-    df.to_csv(args.output_file, sep="\t", index=False)
-    print(f"Generated SMILES saved to {args.output_file}")
+    df.to_csv(output_file, sep="\t", index=False)
+    print(f"Generated SMILES saved to {output_file}")
+
+if __name__ == "__main__":
+    # Parse command-line arguments
+    parser = argparse.ArgumentParser(description="Generate unique SMILES for protein sequences or UniProt IDs.")
+    parser.add_argument("--sequences", nargs="*", help="Protein sequences (space-separated).")
+    parser.add_argument("--uniprot_ids", nargs="*", help="UniProt IDs (space-separated).")
+    parser.add_argument("--num_generated", type=int, default=10, help="Number of unique SMILES to generate per input.")
+    parser.add_argument("--output_file", type=str, default="generated_SMILES.txt", help="Output file name.")
+    args = parser.parse_args()
+
+    run_generation(
+        sequences=args.sequences,
+        uniprot_ids=args.uniprot_ids,
+        num_generated=args.num_generated,
+        output_file=args.output_file
+    )
